@@ -18,19 +18,20 @@ pipeline {
             }
         }
 
-        stage('Deploy to target VM') {
+        stage('Docker Build') {
+            steps {
+                sh "docker build . --tag ttl.sh/myapp:2h"
+                sh "docker push ttl.sh/myapp:2h"
+            }
+        }
+
+        stage('Docker Deploy') {
             steps {
                 sshagent(['pk-test']) {
-                    sh 'scp -o StrictHostKeyChecking=no index.js package.json laborant@target:~/myapp/'
                     sh '''
-                    ssh -o StrictHostKeyChecking=no laborant@target '
-                        cd ~/myapp &&
-                        npm install &&
-                        sudo systemctl daemon-reload &&
-                        sudo systemctl restart myapp
-                    '
+                        ssh -o StrictHostKeyChecking=no laborant@docker 'docker pull ttl.sh/myapp:2h && docker run -d --name myapp -p 4444:4444 ttl.sh/myapp:2h'
                     '''
-                }
+                }   
             }
         }
     }
